@@ -9,7 +9,7 @@ Guía para instalar la plataforma en un equipo nuevo y usar el panel administrat
 | Sistema operativo | Windows 10 u 11, macOS o Linux |
 | Software | [Docker Desktop](https://www.docker.com/products/docker-desktop/) (en Linux, Docker Engine con el complemento Docker Compose v2). No hace falta instalar Java, Node.js, PostgreSQL ni Kafka |
 | Internet | Solo la primera vez, para descargar las imágenes base (Docker Hub) y las dependencias de Maven y npm |
-| Recursos | {{RECURSOS}} |
+| Recursos | Al menos 4 GB de RAM asignados a Docker y 6 GB libres en disco. Medido en la instalación de prueba: los seis contenedores usan en conjunto unos 1,1 GB de RAM, y las imágenes ocupan unos 2,4 GB más 0,8 GB de la imagen de compilación de Maven |
 | Puertos libres | 3000 (panel), 8080 (gateway), 5432 (PostgreSQL) y 9092 (Kafka). Si alguno está ocupado, `iniciar` elige otro libre automáticamente |
 
 ## 2. Instalación

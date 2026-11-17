@@ -160,3 +160,5 @@ Para ver los mensajes reales: pantalla **Eventos Kafka** del panel, la consulta 
 docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh \
   --bootstrap-server localhost:9092 --topic members.events --from-beginning --timeout-ms 5000
 ```
+
+En Git Bash para Windows, anteponga `MSYS_NO_PATHCONV=1` al comando: sin esa variable, Git Bash convierte la ruta `/opt/kafka/...` en una ruta de Windows y el contenedor no la encuentra. En PowerShell, macOS y Linux funciona tal cual.
