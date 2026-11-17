@@ -1,0 +1,36 @@
+sequenceDiagram
+  autonumber
+  actor A as Administrador
+  participant W as admin-web
+  participant G as GraphQL Gateway
+  participant S as Simulador (Members, Memberships, Payments, Access Control)
+  participant K as Kafka
+  participant Q as Consolidated Queries
+  A->>W: Registrar miembro
+  W->>G: mutation registerMember
+  G->>S: POST /members (Members)
+  S-->>K: MEMBER_REGISTERED en members.events
+  K-->>Q: proyecta el miembro en queries_db
+  A->>W: Asignar plan
+  W->>G: mutation createMembership
+  G->>S: POST /memberships (estado PENDING)
+  S-->>K: MEMBERSHIP_CREATED en memberships.events
+  A->>W: Registrar pago
+  W->>G: mutation registerPayment
+  G->>S: POST /payments (Payments)
+  S-->>K: PAYMENT_REGISTERED en payments.events
+  K-->>S: Memberships consume el pago y activa la membresía
+  S-->>K: MEMBERSHIP_ACTIVATED en memberships.events
+  K-->>S: Access Control actualiza access_db
+  K-->>Q: proyecta la membresía activa
+  A->>W: Validar ingreso (torniquete)
+  W->>G: mutation registerAccessAttempt
+  G->>S: POST /access-attempts
+  S->>S: Access Control decide con su estado local
+  S-->>K: ACCESS_GRANTED o ACCESS_DENIED en access.events
+  K-->>Q: proyecta el intento
+  A->>W: Ver ficha consolidada
+  W->>G: query member(id)
+  G->>Q: GET /member-overviews/{id}
+  Q-->>G: miembro, membresía y accesos recientes
+  G-->>W: respuesta GraphQL

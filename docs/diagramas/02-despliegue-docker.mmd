@@ -1,0 +1,26 @@
+flowchart TB
+  p3000(["host :3000"]) --> web
+  p8080(["host :8080"]) --> gw
+  p5432(["127.0.0.1:5432"]) --> pg
+  p9092(["127.0.0.1:9092"]) --> kafka
+  subgraph compose["infrastructure/docker-compose.yml · red default del proyecto"]
+    web["admin-web<br/>build: clients/admin-web"]
+    gw["graphql-gateway<br/>build: gateways/graphql-gateway"]
+    cq["consolidated-queries-service<br/>build: services/consolidated-queries-service"]
+    sim["services-simulator<br/>build: simulator"]
+    pg["postgres<br/>imagen postgres:16-alpine"]
+    kafka["kafka<br/>imagen apache/kafka:3.9.0"]
+    tools["herramientas · perfil herramientas<br/>imagen node:22-alpine, a pedido"]
+  end
+  vol[("volumen postgres-data")]
+  init["postgres/init/01-create-databases.sql"]
+  web -- "depends_on: started" --> gw
+  gw -- "depends_on: started" --> cq
+  gw -- "depends_on: started" --> sim
+  cq -- "depends_on: healthy" --> pg
+  cq -- "depends_on: healthy" --> kafka
+  sim -- "depends_on: healthy" --> pg
+  sim -- "depends_on: healthy" --> kafka
+  tools -- "depends_on: healthy" --> gw
+  pg --- vol
+  init -. "se ejecuta al crear el volumen" .-> pg

@@ -1,0 +1,10 @@
+flowchart TB
+  M["Members"] -- "MEMBER_REGISTERED" --> T1[["members.events"]]
+  P["Payments"] -- "PAYMENT_REGISTERED" --> T2[["payments.events"]]
+  MS["Memberships"] -- "MEMBERSHIP_CREATED<br/>MEMBERSHIP_ACTIVATED<br/>MEMBERSHIP_EXPIRED" --> T3[["memberships.events"]]
+  AC["Access Control"] -- "ACCESS_GRANTED<br/>ACCESS_DENIED" --> T4[["access.events"]]
+  T1 --> Q["Consolidated Queries"]
+  T2 -- "activa la membresía pagada" --> MS
+  T3 -- "ACTIVATED y EXPIRED<br/>(estado local)" --> AC
+  T3 --> Q
+  T4 --> Q

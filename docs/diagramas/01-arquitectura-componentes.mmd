@@ -1,0 +1,22 @@
+flowchart TB
+  user["Administrador<br/>(navegador)"]
+  tools["Clientes GraphQL<br/>(Postman, curl)"]
+  subgraph host["Equipo anfitrión con Docker"]
+    subgraph net["Red interna de Docker Compose"]
+      web["admin-web<br/>React 19 + nginx 1.27<br/>contenedor :80"]
+      gw["graphql-gateway<br/>Java 17 · Spring Boot 4.1<br/>contenedor :8080"]
+      cq["consolidated-queries-service<br/>Java 17 · Spring Boot 4.1<br/>:8085 sin puerto publicado"]
+      sim["services-simulator · Node.js 22<br/>Members · Memberships<br/>Payments · Access Control<br/>:8090 sin puerto publicado"]
+      kafka[("kafka<br/>Apache Kafka 3.9 KRaft<br/>kafka:29092")]
+      pg[("postgres<br/>PostgreSQL 16<br/>5 bases lógicas")]
+    end
+  end
+  user -- "HTTP host :3000" --> web
+  tools -- "HTTP Basic host :8080" --> gw
+  web -- "/api/graphql (única ruta)" --> gw
+  gw -- "REST /member-overviews<br/>credencial interna" --> cq
+  gw -- "REST contrato OpenAPI<br/>12 operaciones" --> sim
+  sim -- "produce y consume eventos" --> kafka
+  kafka -- "eventos de miembros,<br/>membresías y accesos" --> cq
+  sim -- "members_db · memberships_db<br/>payments_db · access_db" --> pg
+  cq -- "queries_db" --> pg

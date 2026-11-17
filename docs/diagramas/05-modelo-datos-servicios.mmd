@@ -1,0 +1,44 @@
+erDiagram
+  MEMBERS["members_db.members"] {
+    bigint id PK
+    text document UK
+    text name
+    text phone
+    text email "opcional"
+    timestamptz created_at
+  }
+  PLANS["memberships_db.plans"] {
+    bigint id PK
+    text name UK
+    int duration_days
+    numeric price
+    timestamptz created_at
+  }
+  MEMBERSHIPS["memberships_db.memberships"] {
+    bigint id PK
+    bigint member_id "referencia de integración"
+    bigint plan_id FK
+    varchar status "PENDING, ACTIVE, EXPIRED"
+    date start_date
+    date end_date
+  }
+  PAYMENTS["payments_db.payments"] {
+    bigint id PK
+    bigint membership_id "referencia de integración"
+    numeric amount
+    timestamptz paid_at
+  }
+  ACCESS_STATE["access_db.access_state"] {
+    bigint member_id PK
+    bigint membership_id
+    varchar status "ACTIVE, EXPIRED"
+    date end_date
+  }
+  ACCESS_ATTEMPTS["access_db.access_attempts"] {
+    bigint attempt_id PK
+    bigint member_id
+    varchar result "ACCESS_GRANTED, ACCESS_DENIED"
+    text reason
+    timestamptz occurred_at
+  }
+  PLANS ||--o{ MEMBERSHIPS : "plan_id"

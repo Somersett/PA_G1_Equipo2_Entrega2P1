@@ -1,0 +1,13 @@
+{
+  "_descripcion": "Datos ficticios para pruebas y demostración. Ninguna persona, documento, teléfono ni correo es real (los correos usan el dominio reservado example.com).",
+  "miembros": [
+    { "nombre": "Andrea Camila Perdomo Ríos", "documento": "1075900101", "telefono": "3105550101", "correo": "andrea.perdomo@example.com", "plan": "Mensual", "escenario": "activa", "ingresos": 2 },
+    { "nombre": "Carlos Andrés Polanía Vargas", "documento": "1075900102", "telefono": "3105550102", "correo": "carlos.polania@example.com", "plan": "Trimestral", "escenario": "activa", "ingresos": 1 },
+    { "nombre": "Daniela Sofía Cuéllar Medina", "documento": "1075900103", "telefono": "3105550103", "correo": "daniela.cuellar@example.com", "plan": "Anual", "escenario": "activa", "ingresos": 1 },
+    { "nombre": "Santiago Rojas Bonilla", "documento": "1075900104", "telefono": "3105550104", "plan": "Mensual", "escenario": "activa", "ingresos": 1 },
+    { "nombre": "Jorge Iván Trujillo Cabrera", "documento": "1075900105", "telefono": "3105550105", "correo": "jorge.trujillo@example.com", "plan": "Mensual", "escenario": "pendiente", "ingresos": 0 },
+    { "nombre": "Valentina Andrade Losada", "documento": "1075900106", "telefono": "3105550106", "plan": "Trimestral", "escenario": "pendiente", "ingresos": 0 },
+    { "nombre": "Miguel Ángel Ramírez Silva", "documento": "1075900107", "telefono": "3105550107", "correo": "miguel.ramirez@example.com", "plan": "Mensual", "escenario": "vencida", "ingresos": 1 },
+    { "nombre": "Laura Marcela Quintero Charry", "documento": "1075900108", "telefono": "3105550108", "correo": "laura.quintero@example.com", "escenario": "sin-membresia", "ingresos": 1 }
+  ]
+}

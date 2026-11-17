@@ -285,7 +285,7 @@ set -a; source infrastructure/.env; set +a
 | GraphiQL en Chrome 156 (puppeteer-core sobre el Chrome instalado): esquema cargado y `member(id: 1287453001)` ejecutado desde el editor | manual | correcto |
 | **E2E real**: Kafka → Queries Service → PostgreSQL → Gateway, incluidos duplicado, evento inválido, caída y recuperación | `infrastructure/scripts/smoke-test-gateway.sh` | 18/18 |
 | Disyuntor, reintento de lecturas, estado armado por el gateway (incluso con todos los servicios caídos), `extensions.upstream` y `extensions.code` (11-11-2026) | `cd gateways/graphql-gateway && ./mvnw test` | 49/49 |
-| **Entrada única y caídas reales** de simulador, PostgreSQL, Kafka, Consolidated Queries y gateway, con recuperación automática (11-11-2026) | `probar-fallos.bat` | 41/41 |
+| **Entrada única y caídas reales** de simulador, PostgreSQL, Kafka, Consolidated Queries y gateway, con recuperación automática (16-11-2026) | `probar-fallos.bat` | 35/35 |
 
 Las pruebas del gateway con mock **no** sustituyen la integración real; esta se demuestra con el script E2E sobre los contenedores. Los tests de integración usan `apache/kafka:3.9.1` porque el `KafkaContainer` de Testcontainers 2.0.5 no arranca con `3.9.0`: el formateo del almacenamiento rechaza `advertised.listeners` con `0.0.0.0`. El Compose sigue usando `3.9.0`.
 

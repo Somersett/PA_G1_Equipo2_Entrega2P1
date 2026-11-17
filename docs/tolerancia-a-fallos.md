@@ -5,7 +5,7 @@ Este documento resume dos garantías de la plataforma y cómo comprobarlas:
 1. **Todo pasa por el GraphQL Gateway.** Ningún cliente llega a un servicio sin pasar por él.
 2. **Si algo falla, el sistema sigue en pie, avisa al usuario de forma clara y se recupera solo.**
 
-Para verlo en vivo con la plataforma en marcha: doble clic en `probar-fallos.bat` (41 comprobaciones, 3–6 minutos).
+Para verlo en vivo con la plataforma en marcha: doble clic en `probar-fallos.bat` (35 comprobaciones en 8 escenarios, 2–6 minutos).
 
 ## 1. Entrada única
 
@@ -125,11 +125,11 @@ docker compose --profile apps stop kafka                 # registrar un miembro 
 docker compose --profile apps start kafka
 ```
 
-## 7. Pruebas (11-11-2026)
+## 7. Pruebas (16-11-2026)
 
 | Nivel | Comando | Resultado |
 | --- | --- | --- |
 | Gateway: disyuntor, reintentos, estado armado por el gateway, `extensions.upstream`/`code`, más las pruebas anteriores | `cd gateways/graphql-gateway && ./mvnw test` | 49/49 |
 | Simulador: reglas de negocio y detección de base de datos caída | `cd simulator && npm test` | 11/11 |
 | Panel: verificación de tipos y compilación | `cd clients/admin-web && npm run build` | correcto |
-| Extremo a extremo con caídas reales de cada componente | `probar-fallos.bat` | 41/41 |
+| Extremo a extremo con caídas reales de cada componente | `probar-fallos.bat` | 35/35 |

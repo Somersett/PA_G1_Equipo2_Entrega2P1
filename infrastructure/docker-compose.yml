@@ -163,5 +163,25 @@ services:
       retries: 10
       start_period: 5s
 
+  # Herramientas a pedido (no forman parte de la solución ni arrancan con iniciar.*). Hablan solo con el
+  # GraphQL Gateway, igual que el panel:
+  #   datos ficticios:  docker compose --profile apps --profile herramientas run --rm herramientas
+  #   latencias:        docker compose --profile apps --profile herramientas run --rm herramientas medir-latencias.mjs
+  herramientas:
+    profiles: ["herramientas"]
+    image: node:22-alpine
+    working_dir: /herramientas
+    volumes:
+      - ../scripts/herramientas:/herramientas:ro
+    environment:
+      GATEWAY_URL: http://graphql-gateway:8080/graphql
+      GATEWAY_CLIENT_USERNAME: ${GATEWAY_CLIENT_USERNAME:-}
+      GATEWAY_CLIENT_PASSWORD: ${GATEWAY_CLIENT_PASSWORD:-}
+    entrypoint: ["node"]
+    command: ["datos-demo.mjs"]
+    depends_on:
+      graphql-gateway:
+        condition: service_healthy
+
 volumes:
   postgres-data:

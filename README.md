@@ -1,216 +1,157 @@
 # Plataforma distribuida de membresías y control de acceso
 
-**Identificación:** Grupo 2 - Equipo 2
+**Grupo 2 – Equipo 2** · Programación Avanzada · Ingeniería de Software · Fundación Escuela Tecnológica de Neiva “Jesús Oviedo Pérez” (FET)
 
-Entrega técnica para la gestión de miembros, planes, membresías, pagos y control de acceso de un gimnasio. Este paquete materializa los contratos y la infraestructura descritos en el PDF principal, sin ampliar el MVP. **Componentes implementados:** GraphQL Gateway y Consolidated Queries Service (ver `docs/api-gateway-graphql.md`), más un **panel administrativo web** (`clients/admin-web`) y un **simulador** (`simulator/`) que hace las veces de Members, Memberships, Payments y Access Control, cuyos servicios Spring Boot siguen sin implementación en este repositorio.
+Plataforma para gestionar miembros, planes, membresías, pagos y control de acceso de un gimnasio, construida con servicios independientes que se comunican por REST, GraphQL y eventos de Apache Kafka, y que se ejecuta completa con Docker Compose.
 
-## Ejecutarlo en cualquier equipo
+- Repositorio: <https://github.com/Somersett/PA_G2_Equipo2_Entrega2P1>
+- Informe de pruebas (Word y PDF): [`docs/informe/`](docs/informe/)
 
-Solo se necesita **[Docker Desktop](https://www.docker.com/products/docker-desktop/)** (Windows, macOS o Linux). No hace falta instalar Java, Node, PostgreSQL ni Kafka.
+## Contenido de la entrega
 
-1. Descomprime el proyecto.
-2. **Windows:** doble clic en `iniciar.bat`. **macOS / Linux:** en una terminal, dentro de la carpeta, ejecuta `bash iniciar.sh`.
-3. Espera el mensaje **"Todo está en marcha"**. Se abre el navegador en **http://localhost:3000**.
-4. Ingresa con el usuario `admin` y la contraseña `cambie-esta-clave-admin` (las de `infrastructure/.env`).
-
-La primera vez tarda entre 5 y 15 minutos porque descarga las imágenes y compila los servicios. Después arranca en menos de un minuto. El script abre Docker Desktop si está cerrado, crea `infrastructure/.env` si no existe y, si algún puerto ya está ocupado (por ejemplo, por un PostgreSQL instalado), usa el siguiente libre e imprime la dirección final.
-
-| Script (Windows / macOS-Linux) | Qué hace |
+| Elemento solicitado | Dónde está |
 | --- | --- |
-| `iniciar.bat` / `iniciar.sh` | Construye y levanta todo, y abre el panel. |
-| `detener.bat` / `detener.sh` | Apaga todo. Los datos se conservan. |
-| `borrar-datos.bat` / `borrar-datos.sh` | Apaga todo y borra bases y tópicos, para repetir la demostración desde cero. |
-| `probar-fallos.bat` | Con la plataforma en marcha, comprueba que todo entre por el gateway y tumba uno a uno los componentes para mostrar que el sistema lo informa y se recupera solo (ver `docs/tolerancia-a-fallos.md`). |
-| `empaquetar.bat` | Genera un `.zip` limpio del proyecto (sin `node_modules`, `target`, `dist` ni `.env`) en la carpeta superior. |
+| Frontend (panel administrativo React + nginx) | [`clients/admin-web/`](clients/admin-web/) |
+| GraphQL Gateway (Spring Boot) | [`gateways/graphql-gateway/`](gateways/graphql-gateway/) |
+| Servicio de consultas consolidadas (Spring Boot) | [`services/consolidated-queries-service/`](services/consolidated-queries-service/) |
+| Members, Memberships, Payments y Access Control (simulador Node.js con los mismos contratos) | [`simulator/`](simulator/) |
+| Diagramas, responsabilidades y comunicación entre componentes | [`docs/arquitectura.md`](docs/arquitectura.md), [`docs/diagramas/`](docs/diagramas/) |
+| Dockerfiles y Docker Compose (servicios, red, volumen, dependencias y healthchecks) | `*/Dockerfile`, [`infrastructure/docker-compose.yml`](infrastructure/docker-compose.yml) |
+| Scripts y migraciones de base de datos, datos ficticios para pruebas | [`infrastructure/postgres/init/`](infrastructure/postgres/init/), migración Flyway, [`simulator/src/db.js`](simulator/src/db.js), [`scripts/herramientas/`](scripts/herramientas/) |
+| Variables de ejemplo sin secretos reales | [`infrastructure/.env.example`](infrastructure/.env.example) |
+| Documentación de API | [`docs/api.md`](docs/api.md) y [`contracts/`](contracts/) |
+| Manual técnico | [`docs/manual-tecnico.md`](docs/manual-tecnico.md) |
+| Manual de instalación y uso | [`docs/manual-instalacion-uso.md`](docs/manual-instalacion-uso.md) |
+| Pruebas, matriz de pruebas y evidencias | [`docs/pruebas-y-evidencias.md`](docs/pruebas-y-evidencias.md), [`docs/evidencias/`](docs/evidencias/), [`docs/informe/`](docs/informe/) |
 
-### Qué incluye el panel
+## Requisitos y dependencias externas
 
-- **Recorrido guiado** (para la sustentación): el flujo principal del PDF (§4) en cinco pasos. Registrar miembro → asignar plan → registrar pago → validar ingreso → consultar la ficha consolidada. Cada paso indica qué servicio actúa y muestra en vivo los eventos que viajan por Kafka. Al final permite vencer la membresía y comprobar el `ACCESS_DENIED`.
-- **Administración:** miembros, membresías, pagos y planes (RF-01 a RF-07). Al terminar cada acción, el panel sugiere el siguiente paso del flujo.
-- **Control de acceso:** simula el torniquete con la mutación `registerAccessAttempt`, que el gateway traduce a `POST /access-attempts` (RF-08, RF-09).
-- **Ficha del miembro:** la vista consolidada `member(id)` del GraphQL Gateway (RF-10), con la consulta y la respuesta reales a la vista.
-- **Eventos Kafka:** todo lo que pasa por los cuatro tópicos, leído directamente del broker.
-- **Estado del sistema:** lo informa el gateway (`systemStatus`): él mismo, el simulador, Consolidated Queries, Kafka y PostgreSQL. Responde aunque algún componente esté caído.
-- **Avisos de fallos:** si algo no responde, un aviso discreto arriba del contenido dice qué falla, qué parte del panel se afecta y qué hacer; al recuperarse avisa y refresca los datos solo. Cada error de un formulario o del recorrido guiado explica la causa y la posible solución (ver `docs/tolerancia-a-fallos.md`).
+| Dependencia | Para qué | Obligatoria |
+| --- | --- | --- |
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows o macOS) o Docker Engine con Compose v2 (Linux) | Construir y ejecutar todos los componentes | Sí |
+| Conexión a internet (solo la primera vez) | Descargar imágenes de Docker Hub (`postgres:16-alpine`, `apache/kafka:3.9.0`, `maven:3.9.11-eclipse-temurin-17`, `eclipse-temurin:17-jre`, `node:22-alpine`, `node:22-slim`, `nginx:1.27-alpine`) y dependencias de Maven Central y del registro de npm | Sí, la primera vez |
+| Navegador web | Usar el panel | Sí |
+| Java 17, Node.js 22, curl, jq | Solo para desarrollar o ejecutar pruebas fuera de Docker | No |
 
-**Todas las llamadas del panel pasan por el GraphQL Gateway.** El navegador solo conoce `/api/graphql`; nginx responde 404 a cualquier otra ruta `/api/*`. El gateway resuelve `member(id)` contra Consolidated Queries y el resto de consultas y mutaciones contra el contrato REST de los servicios. Consolidated Queries y el simulador no publican puerto: solo los alcanza el gateway. Los únicos puertos para clientes son el del panel (`3000`) y el del gateway (`8080`); PostgreSQL y Kafka se publican solo en `127.0.0.1` para herramientas de desarrollo.
+No hay servicios externos en la nube: no se usan pasarelas de pago, correo, autenticación federada ni bases de datos administradas.
 
-```mermaid
-flowchart LR
-    browser["Navegador"] --> web["admin-web :3000<br/>React + nginx"]
-    web -- "/api/graphql<br/>(única ruta)" --> gateway["GraphQL Gateway<br/>consultas y mutaciones"]
-    gateway -- "member(id)" --> queries["Consolidated Queries"]
-    gateway -- "contrato REST" --> sim["Simulador<br/>Members · Memberships<br/>Payments · Access Control"]
-    sim <-- "eventos del contrato" --> kafka[("Kafka")]
-    kafka --> queries
-```
+## Inicio rápido
 
-El simulador implementa las 12 operaciones de `contracts/openapi/gym-platform-api.yaml` y los eventos de `contracts/kafka/events.yaml`. Cada módulo usa su propia base (`members_db`, `memberships_db`, `payments_db`, `access_db`). La activación ocurre consumiendo `PAYMENT_REGISTERED`, y Access Control decide solo con su estado local, alimentado por `MEMBERSHIP_ACTIVATED` y `MEMBERSHIP_EXPIRED`. Detalles en `simulator/README.md`.
+1. Instale y abra Docker Desktop.
+2. Descomprima el ZIP en una carpeta nueva (o clone el repositorio).
+3. Windows: doble clic en `iniciar.bat`. macOS o Linux: `bash iniciar.sh`.
+4. Espere el mensaje **“Todo está en marcha”** (la primera vez, de 5 a 15 minutos). Se abre <http://localhost:3000>.
+5. Ingrese con el usuario `admin` y la contraseña `cambie-esta-clave-admin` (están en `infrastructure/.env`, creado a partir de `.env.example`).
+6. Opcional: `datos-demo.bat` o `bash datos-demo.sh` carga 8 miembros ficticios con membresías, pagos e ingresos.
+
+Guía completa con capturas: [manual de instalación y uso](docs/manual-instalacion-uso.md).
+
+## Orden de ejecución
+
+`iniciar` hace todo en este orden; los mismos pasos se pueden ejecutar a mano desde la carpeta `infrastructure`:
+
+| Paso | Qué ocurre | Comando manual equivalente |
+| --- | --- | --- |
+| 1 | Verifica que Docker responda | `docker info` |
+| 2 | Crea `infrastructure/.env` si no existe | `cp .env.example .env` |
+| 3 | Revisa que los puertos estén libres; si no, elige otros y los guarda en `.env` | — |
+| 4 | Construye las imágenes y levanta PostgreSQL y Kafka; espera a que estén saludables | `docker compose --profile apps up -d --build --wait` |
+| 5 | Con la base y Kafka listos, arrancan Consolidated Queries (aplica su migración Flyway) y el simulador (crea sus tablas y los planes iniciales) | (incluido en el paso 4, por `depends_on`) |
+| 6 | Arranca el GraphQL Gateway y luego el panel | (incluido en el paso 4) |
+| 7 | Opcional: carga datos ficticios por el gateway | `docker compose --profile apps --profile herramientas run --rm herramientas` |
+
+## Comandos
+
+| Acción | Windows | macOS o Linux |
+| --- | --- | --- |
+| Iniciar todo y abrir el panel | `iniciar.bat` | `bash iniciar.sh` |
+| Detener (conserva los datos) | `detener.bat` | `bash detener.sh` |
+| Borrar todos los datos y tópicos | `borrar-datos.bat` | `bash borrar-datos.sh` |
+| Cargar datos ficticios | `datos-demo.bat` | `bash datos-demo.sh` |
+| Probar entrada única y tolerancia a fallos (35 comprobaciones) | `probar-fallos.bat` | — |
+| Generar el ZIP de la versión actual | `empaquetar.bat` | `git archive --format=zip -o proyecto.zip HEAD` |
+| Ver el estado de los contenedores | `cd infrastructure` y `docker compose --profile apps ps` | igual |
+| Ver los registros de un servicio | `docker compose --profile apps logs -f graphql-gateway` | igual |
+| Medir latencias reales | `docker compose --profile apps --profile herramientas run --rm herramientas medir-latencias.mjs` | igual |
+
+Pruebas automatizadas de cada componente: ver el [manual técnico](docs/manual-tecnico.md#7-pruebas).
+
+## Puertos
+
+| Puerto en el equipo | Componente | Acceso |
+| --- | --- | --- |
+| `3000` | Panel administrativo (nginx) | Navegador. Solo reenvía `/api/graphql` al gateway |
+| `8080` | GraphQL Gateway (`/graphql`, `/actuator/health`) | Clientes GraphQL con HTTP Basic |
+| `127.0.0.1:5432` | PostgreSQL | Solo este equipo, para herramientas de desarrollo |
+| `127.0.0.1:9092` | Kafka | Solo este equipo, para herramientas de desarrollo |
+| — | Consolidated Queries (`8085`) y simulador (`8090`) | Sin puerto publicado: solo los alcanza el gateway dentro de la red de Docker |
+
+Los puertos se pueden cambiar en `infrastructure/.env` (`ADMIN_WEB_PORT`, `GATEWAY_HOST_PORT`, `POSTGRES_HOST_PORT`, `KAFKA_HOST_PORT`).
+
+## Arquitectura
+
+![Componentes y comunicación](docs/diagramas/01-arquitectura-componentes.png)
+
+| Componente | Estado | Tecnología |
+| --- | --- | --- |
+| Panel administrativo y simulador del torniquete | Implementado | React 19, TypeScript, Vite 8, nginx 1.27 |
+| GraphQL Gateway | Implementado | Java 17, Spring Boot 4.1.2, Spring for GraphQL |
+| Consolidated Queries Service | Implementado | Java 17, Spring Boot 4.1.2, Flyway, Spring Kafka |
+| Members, Memberships, Payments y Access Control | **Simulados** por un servicio Node.js 22 que cumple sus contratos REST y Kafka, cada módulo con su propia base | Node.js 22, Express 5, kafkajs, pg |
+| PostgreSQL (5 bases lógicas) y Apache Kafka (4 tópicos) | Implementados | PostgreSQL 16, Kafka 3.9.0 KRaft |
+
+Flujo principal: registrar miembro → asignar plan (membresía `PENDING`) → registrar pago → Memberships activa la membresía al consumir `PAYMENT_REGISTERED` → Access Control actualiza su estado local con `MEMBERSHIP_ACTIVATED` → el torniquete valida el ingreso con ese estado → Consolidated Queries proyecta todo y el gateway responde `member(id)`. Detalle, responsabilidades, comunicación, despliegue y modelo de datos en [`docs/arquitectura.md`](docs/arquitectura.md).
+
+### Contratos
+
+- [`contracts/openapi/gym-platform-api.yaml`](contracts/openapi/gym-platform-api.yaml): OpenAPI 3.0.3, 12 operaciones REST.
+- [`contracts/openapi/consolidated-queries-api.yaml`](contracts/openapi/consolidated-queries-api.yaml): API interna de lectura.
+- [`contracts/graphql/schema.graphqls`](contracts/graphql/schema.graphqls): 9 consultas y 6 mutaciones del gateway.
+- [`contracts/kafka/events.yaml`](contracts/kafka/events.yaml): 4 tópicos y 7 eventos con sobre común versionado.
 
 ### Tolerancia a fallos
 
-Resumen (detalle, escenarios y pruebas en `docs/tolerancia-a-fallos.md`):
+Docker reinicia cualquier contenedor caído; el gateway aplica tiempos de espera, un reintento de lecturas y un disyuntor por servicio, e informa qué componente falló sin revelar detalles internos; los servicios usan outbox transaccional y consumidores idempotentes; el panel avisa cada falla con su causa y solución y se recupera solo. Detalle en [`docs/tolerancia-a-fallos.md`](docs/tolerancia-a-fallos.md).
 
-- **Docker** reinicia solo cualquier contenedor que se caiga (`restart: unless-stopped`), y el gateway arranca aunque algún servicio no esté listo.
-- **Gateway:** timeouts, un reintento de las lecturas ante cortes de conexión (los comandos nunca se reintentan), disyuntor por servicio (tras 5 fallos seguidos deja de llamarlo 5 s) y errores que indican qué servicio falló y por qué (`extensions.upstream`, `extensions.code`) sin revelar hosts ni puertos.
-- **Servicios:** outbox transaccional (si Kafka cae, los registros se guardan y sus eventos salen al volver), base de datos caída informada como `DATABASE_UNAVAILABLE`, consumidores idempotentes y supervisados.
-- **Panel:** aviso de conexión y de recuperación, catálogo único de errores con causa y solución, reintentos solo de lo transitorio, listas que distinguen "falló" de "vacío", y una pantalla de recuperación si la interfaz falla.
+## Pruebas
 
-## Alcance del MVP
+| Nivel | Resultado |
+| --- | --- |
+| Pruebas unitarias e integración del gateway | 49/49 |
+| Pruebas unitarias e integración (con PostgreSQL y Kafka reales) de Consolidated Queries | 24/24 |
+| Pruebas del simulador | 11/11 |
+| Compilación del panel (TypeScript y Vite) | Correcta |
+| Entrada única y tolerancia a fallos de extremo a extremo (`probar-fallos`) | 35/35 |
+| Casos funcionales en el navegador, API e instalación desde el ZIP | Ver la matriz |
 
-- Registrar y consultar miembros.
-- Crear y consultar planes de membresía.
-- Asignar un plan y crear una membresía en estado `PENDING`.
-- Registrar un pago y activar automáticamente la membresía correspondiente.
-- Marcar membresías vencidas como `EXPIRED`.
-- Validar y registrar intentos de acceso con el estado local de Access Control.
-- Consultar mediante GraphQL la vista consolidada de miembro, membresía y accesos recientes.
+Matriz completa (caso, resultado esperado, resultado obtenido, estado y evidencia), resultados medidos, simulaciones y trabajo futuro: [`docs/pruebas-y-evidencias.md`](docs/pruebas-y-evidencias.md).
 
-Quedan fuera del alcance la pasarela de pago real, tarjetas, hardware biométrico o torniquetes, aplicación móvil, autoservicio, múltiples sedes, notificaciones, facturación electrónica, contabilidad y SSO.
+## Limitaciones y componentes pendientes
 
-## Arquitectura y responsabilidades
-
-| Componente | Responsabilidad | Persistencia e integración |
-| --- | --- | --- |
-| Members Service | Registrar y consultar miembros; publicar su registro para el modelo consolidado | REST + `members_db` + Kafka |
-| Memberships Service | Gestionar planes, membresías, activación y vencimiento | REST + `memberships_db` + Kafka |
-| Payments Service | Registrar pagos administrativos o simulados | REST + `payments_db` + Kafka |
-| Access Control Service | Decidir accesos con estado local y registrar intentos | REST + `access_db` + Kafka |
-| Consolidated Queries Service | Mantener el modelo de lectura combinado | Spring Boot + `queries_db` + Kafka |
-| GraphQL Gateway | Punto de entrada único de los clientes: consulta consolidada, consultas y comandos | GraphQL sobre el servicio de consultas y los servicios REST |
-
-Los cinco componentes backend se proyectan como proyectos Java/Spring Boot independientes. Ningún servicio debe acceder directamente a la base de otro dominio.
-
-## Contratos incluidos
-
-- `contracts/openapi/gym-platform-api.yaml`: OpenAPI 3.0.3 con 12 operaciones REST.
-- `contracts/graphql/schema.graphqls`: consulta consolidada `member(id: Int!)`, más las consultas y mutaciones que el gateway traduce al contrato REST (ver `docs/api-gateway-graphql.md`).
-- `contracts/openapi/consolidated-queries-api.yaml`: API interna de lectura que consume el GraphQL Gateway.
-- `contracts/kafka/events.yaml`: cuatro tópicos y siete tipos de evento con sobre común versionado e idempotencia definida.
-
-Las operaciones REST administrativas declaran HTTP Basic como mecanismo inicial. `POST /access-attempts` no exige esa autenticación porque representa al simulador del punto de ingreso. Los clientes no llaman estas operaciones directamente: las invoca el GraphQL Gateway, que exige HTTP Basic en todas sus operaciones. El mecanismo definitivo de autenticación y autorización sigue pendiente.
-
-### Operaciones REST
-
-| Método | Ruta | Propósito |
-| --- | --- | --- |
-| `POST` | `/members` | Registrar miembro |
-| `GET` | `/members` | Consultar miembros |
-| `GET` | `/members/{memberId}` | Consultar miembro por ID |
-| `POST` | `/plans` | Crear plan |
-| `GET` | `/plans` | Listar planes |
-| `POST` | `/memberships` | Crear membresía `PENDING` |
-| `GET` | `/memberships` | Consultar membresías |
-| `GET` | `/memberships/{membershipId}` | Consultar membresía por ID |
-| `POST` | `/payments` | Registrar pago |
-| `GET` | `/payments` | Consultar pagos |
-| `GET` | `/payments/{paymentId}` | Consultar pago por ID |
-| `POST` | `/access-attempts` | Validar y registrar acceso |
-
-### Tópicos Kafka
-
-| Tópico | Productor | Consumidores | Eventos |
-| --- | --- | --- | --- |
-| `members.events` | Members Service | Consolidated Queries Service | `MEMBER_REGISTERED` |
-| `payments.events` | Payments Service | Memberships Service | `PAYMENT_REGISTERED` |
-| `memberships.events` | Memberships Service | Access Control Service y Consolidated Queries Service, según el evento | `MEMBERSHIP_CREATED`, `MEMBERSHIP_ACTIVATED`, `MEMBERSHIP_EXPIRED` |
-| `access.events` | Access Control Service | Consolidated Queries Service | `ACCESS_GRANTED`, `ACCESS_DENIED` |
-
-El sobre común contiene `eventId`, `eventType`, `occurredAt` y `version` (inicia en `1`), además de los campos propios de cada evento.
-
-### Idempotencia de consumidores
-
-Kafka se utiliza con semántica de entrega al menos una vez. Cada consumidor mantiene en su propia base lógica una tabla de eventos procesados con una restricción única sobre `consumerName + eventId`. La actualización del dominio o de la proyección y el registro del `eventId` deben confirmarse en la misma transacción local. Si un evento llega duplicado, se reconoce sin volver a aplicar sus efectos; el offset se confirma después de completar la transacción.
+- **Servicios de dominio simulados:** Members, Memberships, Payments y Access Control funcionan dentro de `simulator/` (Node.js), no como cuatro servicios Spring Boot independientes. Respetan los contratos, las bases separadas, los eventos y la idempotencia, y se reemplazan cambiando `GYM_PLATFORM_BASE_URL` del gateway. Las carpetas `services/{members,memberships,payments,access-control}-service/` solo contienen su README.
+- **Autenticación:** HTTP Basic con un único usuario administrador. Falta el mecanismo definitivo de autenticación y autorización, y TLS.
+- **Kafka:** un solo broker sin réplicas; no hay política de reintentos ni *dead-letter topics* para mensajes no procesables.
+- **Pagos y torniquete simulados:** no hay pasarela de pago real ni hardware de acceso; el torniquete es una pantalla del panel.
+- **Vencimiento automático:** una tarea programada vence las membresías cada 60 s, pero las pruebas lo verificaron con el vencimiento forzado (demostración), porque observar el automático exige esperar el fin de una vigencia real.
+- **Documento de la Entrega 2:** sus secciones 3.2, 7 y 11 aún describen el gateway como de solo lectura; la implementación añadió mutaciones para que el panel no llame directamente a los servicios.
+- **Fuera del alcance del MVP:** aplicación móvil, autoservicio, múltiples sedes, notificaciones, facturación electrónica, contabilidad y SSO.
 
 ## Estructura
 
 ```text
-PA_G2_Equipo2_Entrega2P1/
-|-- PA_G2_Equipo2_Entrega2P1.pdf
-|-- README.md
-|-- iniciar.bat / iniciar.sh            (y detener, borrar-datos, probar-fallos, empaquetar)
-|-- scripts/                            (lógica de los scripts de Windows)
-|-- simulator/                          (Members, Memberships, Payments y Access Control simulados)
-|-- services/
-|   |-- members-service/
-|   |-- memberships-service/
-|   |-- payments-service/
-|   |-- access-control-service/
-|   `-- consolidated-queries-service/
-|-- gateways/
-|   `-- graphql-gateway/
-|-- clients/
-|   |-- admin-web/                      (panel administrativo: React + nginx)
-|   `-- access-simulator/               (implementado como la pantalla "Control de acceso" del panel)
-|-- contracts/
-|   |-- openapi/gym-platform-api.yaml
-|   |-- graphql/schema.graphqls
-|   `-- kafka/events.yaml
-|-- infrastructure/
-|   |-- docker-compose.yml
-|   `-- postgres/init/01-create-databases.sql
-`-- docs/
+├── iniciar / detener / borrar-datos / probar-fallos / datos-demo / empaquetar (.bat y .sh)
+├── scripts/            lógica de los scripts de Windows y herramientas/ (datos ficticios y latencias)
+├── clients/admin-web/  panel administrativo (React + nginx)
+├── gateways/graphql-gateway/
+├── services/consolidated-queries-service/   (y carpetas de los servicios pendientes)
+├── simulator/          Members, Memberships, Payments y Access Control
+├── contracts/          OpenAPI, GraphQL y eventos de Kafka
+├── infrastructure/     docker-compose.yml, .env.example, init de PostgreSQL
+├── docs/               arquitectura, API, manuales, pruebas, evidencias, diagramas e informe
+└── PA_G2_Equipo2_Entrega2P1.pdf   documento de la Entrega 2 (requisitos, diseño y contratos)
 ```
 
-Cada directorio de `services/` incluye la estructura interna mínima `api/`, `application/`, `domain/`, `infrastructure/` y `tests/`. En `consolidated-queries-service` esas capas son paquetes del proyecto Maven (`src/main/java/co/edu/fet/gym/queries/...` y `src/test`); en los demás servicios siguen siendo carpetas iniciales sin implementación.
+## Documentación
 
-## Infraestructura local
-
-Requisitos: Docker con soporte para Docker Compose.
-
-Desde la raíz del paquete:
-
-```bash
-cd infrastructure
-docker compose up -d
-```
-
-La infraestructura expone:
-
-- PostgreSQL 16 Alpine en `127.0.0.1:5432` (solo este equipo).
-- Apache Kafka 3.9.0 en modo KRaft en `127.0.0.1:9092` (solo este equipo).
-
-Las credenciales locales de PostgreSQL son `gym_user` / `gym_password`. El script de inicialización crea `members_db`, `memberships_db`, `payments_db`, `access_db` y `queries_db`. Estas credenciales y la topología de broker único corresponden únicamente al entorno académico local.
-
-Para levantar también las aplicaciones implementadas (GraphQL Gateway en `localhost:8080`; Consolidated Queries Service no publica puerto, solo lo llama el gateway) y ejecutar la prueba de extremo a extremo:
-
-```bash
-cd infrastructure
-cp .env.example .env        # credenciales locales; cambie las claves
-docker compose --profile apps up -d --build --wait
-./scripts/smoke-test-gateway.sh
-```
-
-Kafka expone además el listener interno `kafka:29092` para los contenedores de la red de Compose. El perfil `apps` también levanta el simulador y el panel en `http://localhost:3000`. Los puertos del equipo anfitrión se pueden cambiar en `infrastructure/.env` (`ADMIN_WEB_PORT`, `GATEWAY_HOST_PORT`, `POSTGRES_HOST_PORT`, `KAFKA_HOST_PORT`).
-
-Para detener la infraestructura:
-
-```bash
-cd infrastructure
-docker compose down
-```
-
-## Flujo principal
-
-1. Members Service registra el miembro y publica `MEMBER_REGISTERED` para crear la parte `Member` de `MemberOverview`.
-2. Payments Service registra el pago y publica `PAYMENT_REGISTERED`.
-3. Memberships Service consume el evento, activa la membresía y publica `MEMBERSHIP_ACTIVATED`.
-4. Access Control Service actualiza su estado local en `access_db`.
-5. El simulador solicita `POST /access-attempts`.
-6. Access Control decide con su estado local y publica `ACCESS_GRANTED` o `ACCESS_DENIED`.
-7. Consolidated Queries Service consume los eventos de miembro, membresía y acceso para actualizar completamente `queries_db`.
-
-La decisión de acceso no depende de llamadas síncronas a Members, Memberships o Payments. `queries_db` admite consistencia eventual y no debe usarse para autorizar el ingreso.
-
-## Estado y pendientes
-
-Esta entrega define contratos, infraestructura y estructura de proyectos, e implementa el GraphQL Gateway y el Consolidated Queries Service. Para poder demostrar el flujo completo incluye además el panel administrativo (`clients/admin-web`, React servido por nginx) y el simulador de los cuatro servicios pendientes (`simulator/`, Node.js). Docker Compose incluye las aplicaciones en el perfil `apps`.
-
-Permanecen pendientes:
-
-- Implementación en Spring Boot de Members, Memberships, Payments y Access Control (hoy cubiertos por el simulador, que respeta los mismos contratos y puede retirarse cambiando solo `GYM_PLATFORM_BASE_URL` del gateway).
-- Actualizar el PDF: §3.2, §7 y §11 todavía declaran el gateway como de solo lectura y sin mutaciones.
-- Mecanismo definitivo de autenticación y autorización administrativa.
-- Reintentos, mensajes no procesables y dead-letter topics de Kafka.
-- Particiones y factor de réplica fuera del broker académico local.
-- Formato definitivo de trazas y correlación.
+- [Arquitectura](docs/arquitectura.md) · [API](docs/api.md) · [Manual técnico](docs/manual-tecnico.md) · [Instalación y uso](docs/manual-instalacion-uso.md) · [Pruebas y evidencias](docs/pruebas-y-evidencias.md)
+- [GraphQL Gateway y Consolidated Queries en detalle](docs/api-gateway-graphql.md) · [Tolerancia a fallos](docs/tolerancia-a-fallos.md) · [Simulador](simulator/README.md)

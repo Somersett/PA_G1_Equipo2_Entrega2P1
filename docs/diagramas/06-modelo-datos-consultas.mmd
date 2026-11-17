@@ -1,0 +1,31 @@
+erDiagram
+  Q_MEMBERS["queries_db.members"] {
+    bigint member_id PK
+    text document
+    text name
+    text phone
+    text email
+    timestamptz created_at
+  }
+  Q_MEMBERSHIPS["queries_db.memberships"] {
+    bigint membership_id PK
+    bigint member_id
+    bigint plan_id
+    varchar status
+    date start_date
+    date end_date
+  }
+  Q_ACCESS["queries_db.access_attempts"] {
+    bigint attempt_id PK
+    bigint member_id
+    varchar result
+    text reason
+    timestamptz occurred_at
+  }
+  PROCESSED["processed_events (en cada base consumidora)"] {
+    varchar consumer_name PK
+    uuid event_id PK
+    timestamptz processed_at
+  }
+  Q_MEMBERS ||--o{ Q_MEMBERSHIPS : "member_id"
+  Q_MEMBERS ||--o{ Q_ACCESS : "member_id"
