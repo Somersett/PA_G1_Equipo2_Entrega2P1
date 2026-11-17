@@ -1,0 +1,155 @@
+openapi: 3.0.3
+info:
+  title: Consolidated Queries Service - API interna de lectura
+  version: 0.1.0
+  description: >-
+    Interfaz interna que consume el GraphQL Gateway para resolver la consulta
+    member(id) de contracts/graphql/schema.graphqls. Expone la proyección
+    MemberOverview mantenida en queries_db a partir de los eventos Kafka. Es de
+    solo lectura, admite consistencia eventual y no debe usarse para decidir
+    accesos. No forma parte del contrato unificado gym-platform-api.yaml porque
+    no es una operación transaccional ni la consumen clientes externos.
+security:
+  - basicAuth: []
+paths:
+  /member-overviews/{memberId}:
+    parameters:
+      - $ref: '#/components/parameters/MemberId'
+    get:
+      summary: Obtener miembro y membresía vigente proyectados
+      operationId: getMemberOverview
+      description: >-
+        La membresía es la más reciente por createdAt (a igualdad, mayor id) entre
+        las que ya recibieron MEMBERSHIP_CREATED; null si no hay ninguna.
+      responses:
+        '200':
+          description: Vista consolidada encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberOverviewResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          description: Error interno.
+  /member-overviews/{memberId}/recent-accesses:
+    parameters:
+      - $ref: '#/components/parameters/MemberId'
+    get:
+      summary: Obtener los intentos de acceso más recientes del miembro
+      operationId: getRecentAccesses
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        '200':
+          description: Intentos ordenados del más reciente al más antiguo.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccessAttemptResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          description: Error interno.
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+  parameters:
+    MemberId:
+      name: memberId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+  responses:
+    BadRequest:
+      description: Parámetros inválidos.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Falta la credencial o es incorrecta.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: El miembro no tiene proyección (MEMBER_NOT_FOUND).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    MemberOverviewResponse:
+      type: object
+      additionalProperties: false
+      required: [member, membership]
+      properties:
+        member:
+          $ref: '#/components/schemas/MemberView'
+        membership:
+          allOf:
+            - $ref: '#/components/schemas/MembershipView'
+          nullable: true
+    MemberView:
+      type: object
+      additionalProperties: false
+      required: [id, document, name, phone, email, createdAt]
+      properties:
+        id: {type: integer, format: int64}
+        document: {type: string}
+        name: {type: string}
+        phone: {type: string}
+        email: {type: string, nullable: true}
+        createdAt: {type: string, format: date-time}
+    MembershipView:
+      type: object
+      additionalProperties: false
+      required: [id, memberId, planId, status, startDate, endDate, createdAt]
+      properties:
+        id: {type: integer, format: int64}
+        memberId: {type: integer, format: int64}
+        planId: {type: integer, format: int64}
+        status: {type: string, enum: [PENDING, ACTIVE, EXPIRED]}
+        startDate: {type: string, format: date, nullable: true}
+        endDate: {type: string, format: date, nullable: true}
+        createdAt: {type: string, format: date-time}
+    AccessAttemptResponse:
+      type: object
+      additionalProperties: false
+      required: [attemptId, memberId, result, reason, occurredAt]
+      properties:
+        attemptId: {type: integer, format: int64}
+        memberId: {type: integer, format: int64}
+        result: {type: string, enum: [ACCESS_GRANTED, ACCESS_DENIED]}
+        reason: {type: string}
+        occurredAt: {type: string, format: date-time}
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code: {type: string}
+        message: {type: string}

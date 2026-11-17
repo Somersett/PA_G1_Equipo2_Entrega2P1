@@ -1,0 +1,198 @@
+"""Fecha y hora en formato ISO 8601."""
+scalar DateTime
+
+"""Fecha calendario en formato ISO 8601."""
+scalar Date
+
+"""Valor JSON arbitrario (objeto, lista, texto, número o booleano). Solo de salida."""
+scalar JSON
+
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+"""
+Punto de entrada único de los clientes. `member(id)` lee el modelo consolidado (Consolidated Queries
+Service); las demás operaciones se resuelven contra el contrato REST de Members, Memberships, Payments
+y Access Control (contracts/openapi/gym-platform-api.yaml).
+"""
+type Query {
+  """Obtiene la vista consolidada de un miembro por identificador."""
+  member(id: Int!): MemberOverview
+
+  """Miembros registrados, del más reciente al más antiguo (GET /members)."""
+  members: [Member!]!
+
+  """Catálogo de planes (GET /plans)."""
+  plans: [Plan!]!
+
+  """Membresías, de la más reciente a la más antigua (GET /memberships)."""
+  memberships: [Membership!]!
+
+  """Una membresía por identificador; null si no existe (GET /memberships/{membershipId})."""
+  membership(id: Int!): Membership
+
+  """Pagos, del más reciente al más antiguo (GET /payments)."""
+  payments: [Payment!]!
+
+  """Últimos intentos de acceso registrados por Access Control. limit entre 1 y 200."""
+  accessAttempts(limit: Int = 50): [AccessAttempt!]!
+
+  """
+  Estado de los componentes de la plataforma. Lo arma el gateway: responde aunque algún servicio esté
+  caído, marcándolo DOWN (y UNKNOWN lo que solo ese servicio podía informar).
+  """
+  systemStatus: SystemStatus!
+
+  """Mensajes leídos de los cuatro tópicos de Kafka con secuencia mayor que after. limit entre 1 y 500."""
+  kafkaEvents(after: Int = 0, limit: Int = 200): KafkaFeed!
+}
+
+"""
+Comandos. Cada mutación se traduce a la operación REST equivalente; las reglas de negocio y los
+eventos Kafka siguen siendo responsabilidad de cada servicio, no del gateway.
+"""
+type Mutation {
+  """Registra un miembro (POST /members). Publica MEMBER_REGISTERED."""
+  registerMember(input: RegisterMemberInput!): Member!
+
+  """Crea un plan del catálogo (POST /plans)."""
+  createPlan(input: CreatePlanInput!): Plan!
+
+  """Asigna un plan y crea una membresía PENDING (POST /memberships). Publica MEMBERSHIP_CREATED."""
+  createMembership(input: CreateMembershipInput!): Membership!
+
+  """Registra el pago de una membresía (POST /payments). Publica PAYMENT_REGISTERED."""
+  registerPayment(input: RegisterPaymentInput!): Payment!
+
+  """Valida el ingreso con el estado local de Access Control (POST /access-attempts)."""
+  registerAccessAttempt(memberId: Int!): AccessAttempt!
+
+  """Demostración de RF-07: termina hoy la vigencia de una membresía activa. Publica MEMBERSHIP_EXPIRED."""
+  expireMembership(id: Int!): Membership!
+}
+
+type MemberOverview {
+  member: Member!
+  membership: Membership
+  recentAccesses(limit: Int = 10): [AccessAttempt!]!
+}
+
+type Member {
+  id: Int!
+  document: String!
+  name: String!
+  phone: String!
+  email: String
+  createdAt: DateTime!
+}
+
+type Plan {
+  id: Int!
+  name: String!
+  durationDays: Int!
+  price: Float!
+  createdAt: DateTime!
+}
+
+type Membership {
+  id: Int!
+  memberId: Int!
+  planId: Int!
+  status: MembershipStatus!
+  startDate: Date
+  endDate: Date
+  createdAt: DateTime!
+}
+
+type Payment {
+  id: Int!
+  membershipId: Int!
+  amount: Float!
+  paidAt: DateTime!
+  createdAt: DateTime!
+}
+
+type AccessAttempt {
+  attemptId: Int!
+  memberId: Int!
+  result: AccessResult!
+  reason: String!
+  occurredAt: DateTime!
+}
+
+type SystemStatus {
+  ready: Boolean!
+  checkedAt: DateTime!
+  components: [SystemComponent!]!
+}
+
+type SystemComponent {
+  id: String!
+  name: String!
+  role: String!
+  status: ComponentStatus!
+}
+
+type KafkaFeed {
+  """Última secuencia asignada; si baja respecto a una lectura anterior, el visor se reinició."""
+  lastSeq: Int!
+  events: [KafkaEntry!]!
+}
+
+type KafkaEntry {
+  seq: Int!
+  topic: String!
+  partition: Int!
+  offset: Int!
+  key: String
+  timestamp: DateTime!
+  eventType: String
+  """Sobre del evento tal como viajó por Kafka; null si el mensaje no era JSON."""
+  payload: JSON
+  """Texto del mensaje cuando no era JSON."""
+  raw: String
+}
+
+input RegisterMemberInput {
+  document: String!
+  name: String!
+  phone: String!
+  email: String
+}
+
+input CreatePlanInput {
+  name: String!
+  durationDays: Int!
+  price: Float!
+}
+
+input CreateMembershipInput {
+  memberId: Int!
+  planId: Int!
+}
+
+input RegisterPaymentInput {
+  membershipId: Int!
+  amount: Float!
+  paidAt: DateTime!
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+}
+
+enum AccessResult {
+  ACCESS_GRANTED
+  ACCESS_DENIED
+}
+
+enum ComponentStatus {
+  UP
+  DOWN
+  """Sin datos: el componente que lo informa no respondió."""
+  UNKNOWN
+}

@@ -1,0 +1,110 @@
+/*
+ * Tokens del panel. Una sola fuente de verdad para color, tipografía, espacio y forma.
+ * Los colores de estado (good / warn / bad / idle) están reservados para estados del dominio y
+ * siempre se acompañan de icono y texto. Los colores de tópico (topic-*) son categóricos, en orden
+ * fijo, validados para daltonismo; el nombre del tópico siempre va escrito junto al color.
+ */
+:root {
+  color-scheme: light;
+
+  --font-sans: 'Archivo Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'Cascadia Code', Consolas, monospace;
+
+  /* Superficies */
+  --page: #f4f4f1;
+  --surface: #ffffff;
+  --surface-sunken: #f8f8f6;
+  --surface-hover: #f1f1ed;
+  --line: #e4e3de;
+  --line-strong: #cfcdc5;
+
+  /* Tinta */
+  --ink: #141413;
+  --ink-2: #4b4a46;
+  --ink-3: #6b6a65;
+  --ink-inverse: #ffffff;
+
+  /* Noche: barra lateral, torniquete y paneles de marca */
+  --night: #121311;
+  --night-2: #1b1c19;
+  --night-3: #252622;
+  --night-line: #2e2f2a;
+  --night-ink: #edece7;
+  --night-ink-2: #a9a8a0;
+  --night-ink-3: #93928a; /* ≥ 4.5:1 sobre --night para texto pequeño */
+
+  /* Acento de marca: lima. Sobre noche o como relleno con tinta oscura, nunca como texto sobre blanco. */
+  --lime: #cdf24b;
+  --lime-strong: #b9de30;
+  --lime-soft: #f1fbd0;
+  --lime-ink: #141413;
+
+  /* Estados del dominio */
+  --good: #16a34a;
+  --good-ink: #0f5a2b;
+  --good-bg: #e7f5ec;
+  --good-line: #bfe3cb;
+  --good-solid: #0f7a37;
+
+  --warn: #e19a06;
+  --warn-ink: #7a4800;
+  --warn-bg: #fdf3dd;
+  --warn-line: #f3d79c;
+
+  --bad: #dc2f22;
+  --bad-ink: #a11d16;
+  --bad-bg: #fdecea;
+  --bad-line: #f5c3be;
+  --bad-solid: #b42318;
+
+  --idle: #8b8a84;
+  --idle-ink: #4b4a46;
+  --idle-bg: #efeeea;
+  --idle-line: #dbd9d2;
+
+  /* Tópicos Kafka (categórico, orden fijo del contrato) */
+  --topic-members: #2a78d6;
+  --topic-payments: #eb6834;
+  --topic-memberships: #1baf7a;
+  --topic-access: #eda100;
+
+  /* Forma */
+  --r-xs: 4px;
+  --r-sm: 6px;
+  --r: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-full: 999px;
+
+  --shadow-1: 0 1px 2px rgb(20 20 19 / 0.05);
+  --shadow-2: 0 1px 2px rgb(20 20 19 / 0.04), 0 4px 12px -2px rgb(20 20 19 / 0.06);
+  --shadow-pop: 0 2px 6px rgb(20 20 19 / 0.06), 0 18px 40px -12px rgb(20 20 19 / 0.22);
+
+  --focus-ring: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink);
+
+  /* Espacio (base 4) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+
+  /* Tipografía */
+  --t-xs: 0.75rem;
+  --t-sm: 0.8125rem;
+  --t-base: 0.875rem;
+  --t-md: 0.9375rem;
+  --t-lg: 1.0625rem;
+  --t-xl: 1.375rem;
+  --t-2xl: 1.75rem;
+  --t-3xl: 2.25rem;
+
+  --sidebar-w: 248px;
+  --content-max: 1240px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}

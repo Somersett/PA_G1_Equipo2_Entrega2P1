@@ -1,0 +1,285 @@
+contractVersion: 1
+description: >-
+  Contrato inicial de los eventos Kafka del MVP. Cada mensaje usa un sobre
+  plano y versionado: los campos comunes y los campos de dominio se publican
+  en el mismo objeto JSON.
+
+commonEnvelope:
+  required:
+    - eventId
+    - eventType
+    - occurredAt
+    - version
+  fields:
+    eventId:
+      type: string
+      format: uuid
+      description: Identificador único del evento.
+    eventType:
+      type: string
+      enum:
+        - MEMBER_REGISTERED
+        - PAYMENT_REGISTERED
+        - MEMBERSHIP_CREATED
+        - MEMBERSHIP_ACTIVATED
+        - MEMBERSHIP_EXPIRED
+        - ACCESS_GRANTED
+        - ACCESS_DENIED
+    occurredAt:
+      type: string
+      format: date-time
+    version:
+      type: integer
+      const: 1
+
+deliverySemantics:
+  mode: at-least-once
+  idempotency:
+    key: eventId
+    strategy: transactional-inbox-per-consumer
+    persistence: >-
+      Cada consumidor guarda el eventId en una tabla de eventos procesados
+      dentro de su propia base de datos lógica.
+    uniqueness: consumerName + eventId
+    transaction: >-
+      La actualización de dominio o de proyección y el registro del eventId se
+      confirman en la misma transacción local.
+    duplicateBehavior: >-
+      Si la clave ya existe, el consumidor reconoce el mensaje sin volver a
+      aplicar sus efectos.
+    offsetCommit: >-
+      El offset de Kafka se confirma únicamente después de confirmar la
+      transacción local.
+
+topics:
+  members.events:
+    producers:
+      - Members Service
+    consumers:
+      - Consolidated Queries Service
+    events:
+      - MEMBER_REGISTERED
+    purpose: Crear la información de miembro en la vista MemberOverview.
+  payments.events:
+    producers:
+      - Payments Service
+    consumers:
+      - Memberships Service
+    events:
+      - PAYMENT_REGISTERED
+    purpose: Activar la membresía asociada al pago.
+  memberships.events:
+    producers:
+      - Memberships Service
+    consumers:
+      - Access Control Service
+      - Consolidated Queries Service
+    events:
+      - MEMBERSHIP_CREATED
+      - MEMBERSHIP_ACTIVATED
+      - MEMBERSHIP_EXPIRED
+    purpose: Propagar creación, activación y vencimiento de membresías.
+    consumption:
+      MEMBERSHIP_CREATED:
+        - Consolidated Queries Service
+      MEMBERSHIP_ACTIVATED:
+        - Access Control Service
+        - Consolidated Queries Service
+      MEMBERSHIP_EXPIRED:
+        - Access Control Service
+        - Consolidated Queries Service
+  access.events:
+    producers:
+      - Access Control Service
+    consumers:
+      - Consolidated Queries Service
+    events:
+      - ACCESS_GRANTED
+      - ACCESS_DENIED
+    purpose: Reflejar los intentos de acceso en el modelo de lectura.
+
+events:
+  MEMBER_REGISTERED:
+    topic: members.events
+    producer: Members Service
+    consumers:
+      - Consolidated Queries Service
+    requiredDomainFields:
+      - memberId
+      - document
+      - name
+      - phone
+      - createdAt
+    optionalDomainFields:
+      - email
+    domainFields:
+      memberId:
+        type: integer
+        format: int64
+      document:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      email:
+        type: string
+        format: email
+        nullable: true
+      createdAt:
+        type: string
+        format: date-time
+
+  PAYMENT_REGISTERED:
+    topic: payments.events
+    producer: Payments Service
+    consumers:
+      - Memberships Service
+    requiredDomainFields:
+      - paymentId
+      - membershipId
+      - amount
+      - paidAt
+    domainFields:
+      paymentId:
+        type: integer
+        format: int64
+      membershipId:
+        type: integer
+        format: int64
+      amount:
+        type: number
+        format: double
+      paidAt:
+        type: string
+        format: date-time
+
+  MEMBERSHIP_CREATED:
+    topic: memberships.events
+    producer: Memberships Service
+    consumers:
+      - Consolidated Queries Service
+    requiredDomainFields:
+      - membershipId
+      - memberId
+      - planId
+      - status
+    domainFields:
+      membershipId:
+        type: integer
+        format: int64
+      memberId:
+        type: integer
+        format: int64
+      planId:
+        type: integer
+        format: int64
+      status:
+        type: string
+        const: PENDING
+
+  MEMBERSHIP_ACTIVATED:
+    topic: memberships.events
+    producer: Memberships Service
+    consumers:
+      - Access Control Service
+      - Consolidated Queries Service
+    requiredDomainFields:
+      - membershipId
+      - memberId
+      - status
+      - startDate
+      - endDate
+    domainFields:
+      membershipId:
+        type: integer
+        format: int64
+      memberId:
+        type: integer
+        format: int64
+      status:
+        type: string
+        const: ACTIVE
+      startDate:
+        type: string
+        format: date
+      endDate:
+        type: string
+        format: date
+
+  MEMBERSHIP_EXPIRED:
+    topic: memberships.events
+    producer: Memberships Service
+    consumers:
+      - Access Control Service
+      - Consolidated Queries Service
+    requiredDomainFields:
+      - membershipId
+      - memberId
+      - status
+      - endDate
+    domainFields:
+      membershipId:
+        type: integer
+        format: int64
+      memberId:
+        type: integer
+        format: int64
+      status:
+        type: string
+        const: EXPIRED
+      endDate:
+        type: string
+        format: date
+
+  ACCESS_GRANTED:
+    topic: access.events
+    producer: Access Control Service
+    consumers:
+      - Consolidated Queries Service
+    requiredDomainFields:
+      - attemptId
+      - memberId
+      - result
+      - reason
+    domainFields:
+      attemptId:
+        type: integer
+        format: int64
+      memberId:
+        type: integer
+        format: int64
+      result:
+        type: string
+        const: ACCESS_GRANTED
+      reason:
+        type: string
+
+  ACCESS_DENIED:
+    topic: access.events
+    producer: Access Control Service
+    consumers:
+      - Consolidated Queries Service
+    requiredDomainFields:
+      - attemptId
+      - memberId
+      - result
+      - reason
+    domainFields:
+      attemptId:
+        type: integer
+        format: int64
+      memberId:
+        type: integer
+        format: int64
+      result:
+        type: string
+        const: ACCESS_DENIED
+      reason:
+        type: string
+
+pendingDecisions:
+  - Estrategia de reintentos.
+  - Tratamiento de mensajes no procesables.
+  - Dead-letter topics.
+  - Particiones y factor de réplica fuera del broker académico local.

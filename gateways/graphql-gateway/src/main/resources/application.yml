@@ -1,0 +1,52 @@
+# Las credenciales no tienen valor por defecto: se leen del entorno (ver infrastructure/.env.example).
+# El valor vacío tras ':' evita que un placeholder sin resolver quede como texto literal.
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+
+spring:
+  application:
+    name: graphql-gateway
+  graphql:
+    http:
+      path: /graphql
+    # GraphiQL solo se habilita con el perfil "local" (application-local.yml): carga código desde esm.sh
+    # y no debe exponerse fuera del desarrollo local.
+    graphiql:
+      enabled: false
+    schema:
+      introspection:
+        enabled: ${GATEWAY_INTROSPECTION_ENABLED:true}
+
+gateway:
+  security:
+    client-username: ${GATEWAY_CLIENT_USERNAME:}
+    client-password: ${GATEWAY_CLIENT_PASSWORD:}
+    cors-allowed-origins: ${GATEWAY_CORS_ALLOWED_ORIGINS:}
+  graphql:
+    max-query-depth: ${GATEWAY_MAX_QUERY_DEPTH:15}
+    max-query-complexity: ${GATEWAY_MAX_QUERY_COMPLEXITY:60}
+  consolidated-queries:
+    base-url: ${CONSOLIDATED_QUERIES_BASE_URL:http://localhost:8085}
+    username: ${QUERIES_API_USERNAME:}
+    password: ${QUERIES_API_PASSWORD:}
+    connect-timeout: ${CONSOLIDATED_QUERIES_CONNECT_TIMEOUT:2s}
+    read-timeout: ${CONSOLIDATED_QUERIES_READ_TIMEOUT:3s}
+  # Members, Memberships, Payments y Access Control (contrato gym-platform-api.yaml; hoy, el simulador).
+  gym-platform:
+    base-url: ${GYM_PLATFORM_BASE_URL:http://localhost:8090}
+    username: ${GYM_PLATFORM_USERNAME:}
+    password: ${GYM_PLATFORM_PASSWORD:}
+    connect-timeout: ${GYM_PLATFORM_CONNECT_TIMEOUT:2s}
+    read-timeout: ${GYM_PLATFORM_READ_TIMEOUT:5s}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never

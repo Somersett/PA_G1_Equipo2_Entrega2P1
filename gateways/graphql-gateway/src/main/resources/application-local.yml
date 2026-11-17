@@ -1,0 +1,10 @@
+# Perfil exclusivo de desarrollo local. Actívelo con SPRING_PROFILES_ACTIVE=local
+# (en Compose: GATEWAY_SPRING_PROFILES_ACTIVE=local en infrastructure/.env).
+#
+# GraphiQL: http://localhost:8080/graphiql
+# - Sigue exigiendo HTTP Basic; Chrome muestra su diálogo de credenciales y las reutiliza en /graphql.
+# - No escriba credenciales en el panel "Headers": la página las guarda en el localStorage del navegador.
+spring:
+  graphql:
+    graphiql:
+      enabled: true

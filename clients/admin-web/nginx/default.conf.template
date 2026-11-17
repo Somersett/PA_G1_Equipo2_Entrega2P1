@@ -1,0 +1,79 @@
+# Plantilla procesada por la imagen oficial de nginx (envsubst) al arrancar el contenedor.
+# El navegador solo habla con el GraphQL Gateway: es el único upstream. Se resuelve en cada petición con el
+# DNS de Docker, así nginx arranca aunque el gateway todavía no exista y se recupera solo si se reinicia.
+
+server {
+    listen 80;
+    server_name _;
+    root /usr/share/nginx/html;
+
+    # Caché DNS corta: si el gateway se cae o cambia de IP al reiniciarse, nginx lo nota en segundos.
+    resolver ${DNS_RESOLVER} valid=5s ipv6=off;
+    resolver_timeout 2s;
+
+    server_tokens off;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options DENY always;
+    add_header Referrer-Policy no-referrer always;
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+
+    location = /healthz {
+        access_log off;
+        default_type text/plain;
+        return 200 'ok';
+    }
+
+    # GraphQL Gateway: consultas y mutaciones de todo el panel.
+    location = /api/graphql {
+        set $gateway http://${GATEWAY_UPSTREAM};
+        proxy_pass $gateway/graphql;
+        proxy_set_header Host $http_host;
+        # Mismo origen para el navegador: sin Origin, el backend no trata la petición como CORS.
+        proxy_set_header Origin "";
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        # Sin este encabezado el navegador no muestra su diálogo nativo de HTTP Basic: el panel tiene el suyo.
+        proxy_hide_header WWW-Authenticate;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 15s;
+        # Si el gateway no está (caído, reiniciándose o sin resolver en el DNS), nginx responde un JSON que el
+        # panel entiende en vez de su página HTML de error. Las respuestas del propio gateway pasan intactas.
+        error_page 502 503 = @gateway_unavailable;
+        error_page 504 = @gateway_timeout;
+    }
+
+    location @gateway_unavailable {
+        default_type application/json;
+        add_header Cache-Control "no-store" always;
+        return 502 '{"code":"GATEWAY_UNAVAILABLE","message":"El GraphQL Gateway no responde."}';
+    }
+
+    location @gateway_timeout {
+        default_type application/json;
+        add_header Cache-Control "no-store" always;
+        return 504 '{"code":"GATEWAY_TIMEOUT","message":"El GraphQL Gateway no respondió a tiempo."}';
+    }
+
+    # Ninguna otra ruta de API: los servicios no se exponen al navegador, solo a través del gateway.
+    location /api/ {
+        default_type application/json;
+        return 404 '{"code":"NOT_FOUND","message":"El panel solo expone /api/graphql."}';
+    }
+
+    # Recursos con hash en el nombre: caché larga.
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable" always;
+        add_header X-Content-Type-Options nosniff always;
+        try_files $uri =404;
+    }
+
+    # Aplicación de una sola página: cualquier otra ruta devuelve index.html.
+    location / {
+        add_header Cache-Control "no-cache" always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header X-Frame-Options DENY always;
+        try_files $uri $uri/ /index.html;
+    }
+}

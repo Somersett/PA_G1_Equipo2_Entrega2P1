@@ -1,0 +1,20 @@
+﻿{
+  "name": "services-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Simulador de Members, Memberships, Payments y Access Control para la demostración del MVP. Implementa el contrato REST (contracts/openapi/gym-platform-api.yaml) y los eventos Kafka (contracts/kafka/events.yaml).",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "kafkajs": "^2.2.4",
+    "pg": "^8.16.3"
+  }
+}

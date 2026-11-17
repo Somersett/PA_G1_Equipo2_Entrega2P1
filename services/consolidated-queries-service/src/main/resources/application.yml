@@ -1,0 +1,48 @@
+# Las credenciales no tienen valor por defecto: se leen del entorno (ver infrastructure/.env.example).
+# El valor vacío tras ':' evita que un placeholder sin resolver quede como texto literal.
+server:
+  port: ${SERVER_PORT:8085}
+  shutdown: graceful
+
+spring:
+  application:
+    name: consolidated-queries-service
+  datasource:
+    url: ${QUERIES_DB_URL:jdbc:postgresql://localhost:5432/queries_db}
+    username: ${QUERIES_DB_USERNAME:}
+    password: ${QUERIES_DB_PASSWORD:}
+  flyway:
+    enabled: true
+    # queries_db puede contener tablas ajenas a este servicio (p. ej. received_events en volúmenes
+    # existentes). Se registra la línea base en 0 y se aplica V1 sin tocar esas tablas; si V1
+    # chocara con una tabla existente, la migración falla en vez de sobrescribirla.
+    baseline-on-migrate: true
+    baseline-version: 0
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: consolidated-queries-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        isolation.level: read_committed
+    listener:
+      ack-mode: record
+
+queries:
+  api:
+    username: ${QUERIES_API_USERNAME:}
+    password: ${QUERIES_API_PASSWORD:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never

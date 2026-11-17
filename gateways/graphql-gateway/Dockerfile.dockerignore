@@ -1,0 +1,4 @@
+**
+!contracts/graphql/schema.graphqls
+!gateways/graphql-gateway/pom.xml
+!gateways/graphql-gateway/src/**
